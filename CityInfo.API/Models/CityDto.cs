@@ -5,8 +5,8 @@
     using System.Linq;
     using System.Threading.Tasks;
 
-    namespace CityInfo.API.Models
-    {
+
+    
         public class CityDto
         {
             public int Id { get; set; }
@@ -25,4 +25,4 @@
             public ICollection<PointOfIntrestDto> PointOfIntrests { get; set; } = new List<PointOfIntrestDto>();
         }
     }
-}
+

@@ -1,4 +1,7 @@
-﻿using CityInfo.API.Models;
+﻿using AutoMapper;
+using CityInfo.API.Entities;
+using CityInfo.API.Models;
+using CityInfo.API.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -13,67 +16,78 @@ namespace CityInfo.API.Controllers
     [ApiController]
     public class PointsOfIntrestsController : ControllerBase
     {
-        private readonly CitiesDataStore citiesData;
+        private readonly ICityInfoRepository cityInfoRepository;
 
         public ILogger<PointsOfIntrestsController> _logger { get; }
+        public IMapper Mapper { get; }
 
         [HttpGet]
-        public ActionResult<IEnumerable<PointOfIntrestDto>> GetPointsOfIntrests(int id)
+        public async  Task<ActionResult<IEnumerable<PointOfIntrestDto>>> GetPointsOfIntrests(int cityId)
         {
-            var city = citiesData.Cities.FirstOrDefault(c => c.Id == id);
 
-            return city == null ? NotFound() : Ok(city.PointOfIntrests);
+            if(!await cityInfoRepository.CityExitsAsync(cityId))
+            {
+                _logger.LogInformation($"City with id {cityId} wasn't found when accessing points of intrest.");
+                return NotFound();
+            }
+            var city = await cityInfoRepository.GetPointsOfIntrestForCityAsync(cityId);
+
+            return Ok(Mapper.Map<IEnumerable<PointOfIntrestDto>>(city));
         }
 
 
-        public PointsOfIntrestsController(ILogger<PointsOfIntrestsController> logger, CitiesDataStore citiesData)
+        public PointsOfIntrestsController(ILogger<PointsOfIntrestsController> logger, ICityInfoRepository cityInfoRepository,IMapper  mapper)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            this.citiesData = citiesData ?? throw new ArgumentNullException(nameof(citiesData));
+            this.cityInfoRepository = cityInfoRepository ?? throw new ArgumentNullException(nameof(cityInfoRepository));
+            Mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         }
 
         [HttpGet("pointofIntrest", Name = "GetPointOfIntrest")]
-        public ActionResult<IEnumerable<PointOfIntrestDto>> GetPointOfIntrest(int cityId, int pointOfIntrestId)
+        public async  Task<ActionResult<IEnumerable<PointOfIntrestDto>>> GetPointOfIntrest(int cityId, int pointOfIntrestId)
         {
-            var city = citiesData.Cities.FirstOrDefault(c => c.Id == cityId);
+            if (!await cityInfoRepository.CityExitsAsync(cityId))
+            {
+                _logger.LogInformation($"City with id {cityId} wasn't found when accessing points of intrest.");
+                return NotFound();
+            }
 
-            if (city == null) return NotFound();
+            var PointsOfIntrest = await cityInfoRepository.GetPointOfIntrestForCityAsync(cityId, pointOfIntrestId);
 
-            var pointOfIntrest = city.PointOfIntrests.FirstOrDefault(c => c.Id == pointOfIntrestId);
+            if (PointsOfIntrest == null) return NotFound();
 
-            if (pointOfIntrest == null) return NotFound();
+           
 
-            return Ok(pointOfIntrest);
+            return Ok(Mapper.Map<PointOfIntrestDto>(PointsOfIntrest));
         }
 
 
         [HttpPost]
-        public ActionResult<IEnumerable<PointOfIntrestDto>> CreatePointOfIntrest(int cityId, PointOfIntrestCreationDto pointOfIntrestCreation)
+        public  async Task<ActionResult<IEnumerable<PointOfIntrestDto>>> CreatePointOfIntrest(int cityId, PointOfIntrestCreationDto pointOfIntrestCreation)
         {
-            var city = citiesData.Cities.FirstOrDefault(c => c.Id == cityId);
-
-            if (city == null)
+            if (!await cityInfoRepository.CityExitsAsync(cityId))
             {
-                _logger.LogInformation($"City with id {cityId} wasn't found when accessing points of intrest.");
-
+                _logger.LogInformation($"City with id {cityId} wasn't found");
                 return NotFound();
-
             }
 
-            var maxPointOfIntrest = city.PointOfIntrests.Max(s => s.Id);
 
-            var finalPointOfIntrest = new PointOfIntrestDto()
-            {
-                Id = maxPointOfIntrest + 1,
-                Name = pointOfIntrestCreation.Name,
-                Description = pointOfIntrestCreation.Description
-            };
-            city.PointOfIntrests.Add(finalPointOfIntrest);
-            return CreatedAtRoute("GetPointOfIntrest", new
-            {
-                cityId = cityId,
-                pointOfIntrestId = finalPointOfIntrest.Id
-            }, finalPointOfIntrest);
+
+            var finalPointOfIntrest = Mapper.Map<Entities.PointOfIntrest>(pointOfIntrestCreation);
+
+            await cityInfoRepository.AddPointsOfIntrestForCityAsync(cityId, finalPointOfIntrest);
+            await cityInfoRepository.SaveChangesAsync();
+            var createdPointOfInterest = Mapper.Map<Models.PointOfIntrestDto>(finalPointOfIntrest);
+
+            return CreatedAtRoute("GetPointOfIntrest",
+                new
+                {
+                    CityId = cityId,
+                    PointOfIntrestId = createdPointOfInterest.Id
+
+                },
+                createdPointOfInterest);
+           
         }
     }
 }

@@ -1,5 +1,5 @@
 ﻿using CityInfo.API.Models;
-using CityInfo.API.Models.CityInfo.API.Models;
+
 using System;
 using System.Collections.Generic;
 using System.Linq;

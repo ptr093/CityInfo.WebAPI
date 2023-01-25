@@ -1,6 +1,5 @@
 ﻿using CityInfo.API.Entities;
 using CityInfo.API.Models;
-using CityInfo.API.Models.CityInfo.API.Models;
 using Microsoft.EntityFrameworkCore;
 
 
