@@ -16,7 +16,7 @@ namespace CityInfo.API.Entities
         [Required]
         [MaxLength(50)]
         public string Name { get; set; }
-        [MaxLength(250)]
+        [MaxLength(200)]
         public string Description { get; set; }
         [ForeignKey("CityId")]
         public City? City { get; set; }

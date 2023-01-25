@@ -1,5 +1,7 @@
 using CityInfo.API;
+using CityInfo.API.DbContexts;
 using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,7 +24,11 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<FileExtensionContentTypeProvider>();
 builder.Services.AddSingleton<CitiesDataStore>();
-
+builder.Services.AddDbContext<CityInfoContext>(dbContextOptions =>
+{
+    dbContextOptions.UseSqlite(builder.Configuration["ConnectionStrings:CityInfoDb"
+        ]);
+});
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
